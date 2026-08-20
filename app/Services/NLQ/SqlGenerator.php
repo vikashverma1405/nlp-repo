@@ -4,6 +4,8 @@ namespace App\Services\NLQ;
 
 class SqlGenerator
 {
+    public const CANNOT_ANSWER_SENTINEL = "CANNOT_ANSWER";
+
     public function __construct(
         private AzureOpenAIClient $ai,
         private SchemaIntrospector $schema,
@@ -12,6 +14,8 @@ class SqlGenerator
     public function generate(string $question): string
     {
         $schemaContext = $this->schema->getSchemaContext();
+
+        $cannotAnswer = self::CANNOT_ANSWER_SENTINEL;
 
         $systemPrompt = <<<PROMPT
 You are a PostgreSQL expert. Convert the user's natural language question into a single, valid, READ-ONLY PostgreSQL SELECT query.
@@ -23,7 +27,7 @@ STRICT RULES:
 - Always include a LIMIT clause (max 100) unless the user requests an aggregate/count.
 - Use proper JOINs based on the relationships provided.
 - Use ILIKE for case-insensitive text matching.
-- If the question cannot be answered with the schema, return exactly: SELECT 'CANNOT_ANSWER' AS error;
+- If the question cannot be answered with the schema, return exactly: SELECT '{$cannotAnswer}' AS error;
 
 {$schemaContext}
 PROMPT;
